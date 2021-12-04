@@ -23,7 +23,7 @@ import Options.Applicative
   , progDesc, strArgument
   )
 import System.Directory (makeAbsolute, withCurrentDirectory)
-import System.FilePath (makeRelative, takeDirectory)
+import System.FilePath (addTrailingPathSeparator, makeRelative, takeDirectory)
 import System.Process (readProcess)
 import qualified Text.PrettyPrint as PP
 import Text.PrettyPrint (Doc)
@@ -133,9 +133,10 @@ classifyPackages packagePaths submods = do
       absPkgPath <- makeAbsolute pkgPath
       pure $ case List.firstJust
                     (\submod ->
-                      if submodFilePath submod `List.isInfixOf` absPkgPath
-                         then Just (submod, makeRelative (submodFilePath submod) absPkgPath)
-                         else Nothing)
+                      if addTrailingPathSeparator (submodFilePath submod)
+                         `List.isInfixOf` absPkgPath
+                      then Just (submod, makeRelative (submodFilePath submod) absPkgPath)
+                      else Nothing)
                     submods of
         Nothing -> (pkgPath:pkgPaths', submodMap')
         Just (submod, cabalFilePath) ->

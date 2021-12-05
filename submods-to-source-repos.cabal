@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               submods-to-source-repos
-version:            0.1
+version:            0.0.0.20211205
 synopsis:           Convert submodules to source-repository-packages
 description:        Convert a submodule-using @cabal.project@ file to one that
                     uses @source-repository-package@s.

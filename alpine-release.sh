@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-VERSION=0.0.0.20211205
+VERSION=0.0.0.20211210
 
 HOME=/home/user
 GHCUP_HOME=${HOME}/.ghcup

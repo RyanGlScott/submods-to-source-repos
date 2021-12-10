@@ -90,26 +90,61 @@ data Submodule subdir = Submodule
     -- ^ Subdirectories within the submodule.
   } deriving stock Show
 
--- | Parse a single line of output from @git submodule@. This uses
+-- | Parse a single line of output from @git submodule status@. This uses
 -- @git config --get remote.origin.url@ under the hood to determine the
 -- submodule's URL.
 parseSubmodule :: String -> IO (Submodule Void)
-parseSubmodule line = do
-  (commit, relPath) <-
-    case words line of
-      (commit:relPath:_) -> pure (commit, relPath)
-      _ -> fail $ unlines
-        [ "Unexpected output from `git submodule`:"
-        , line
-        ]
-  absPath <- makeAbsolute relPath
-  withCurrentDirectory absPath $ do
-    url <- List.trim <$> git ["config", "--get", "remote.origin.url"]
-    pure $ Submodule{ submodFilePath = absPath
-                    , submodURL      = url
-                    , submodCommit   = commit
-                    , submodSubdirs  = []
-                    }
+parseSubmodule line =
+  case List.uncons line of
+    Nothing ->
+      fail "`git submodule status` produced an empty line of output"
+    Just (prefix, status) ->
+      case prefix of
+        ' ' -> parseGoodStatus status
+        '-' -> parseBadStatus status $ \_ relPath ->
+                "The " ++ relPath ++ " submodule is not initialized. " ++
+                "Initialize it with, e.g., `git submodule update --init --depth 1`."
+        '+' -> parseBadStatus status $ \commit relPath ->
+                 "The commit hash of the " ++ relPath ++ " submodule (" ++
+                 commit ++ ") does not match the SHA-1 found in the index " ++
+                 "of the containing repository"
+        'U' -> parseBadStatus status $ \_ relPath ->
+                 "The " ++ relPath ++ " submodule has merge conflicts"
+        _   -> fail $
+                 "`git submodule status` used an unknown prefix: " ++ [prefix]
+  where
+    -- We have a commit hash that can safely be turned into a tag in a
+    -- source-repository-package. Parse the status and finish.
+    parseGoodStatus :: String -> IO (Submodule Void)
+    parseGoodStatus status = do
+      (commit, relPath) <- parseStatus status
+      absPath <- makeAbsolute relPath
+      withCurrentDirectory absPath $ do
+        url <- List.trim <$> git ["config", "--get", "remote.origin.url"]
+        pure $ Submodule{ submodFilePath = absPath
+                        , submodURL      = url
+                        , submodCommit   = commit
+                        , submodSubdirs  = []
+                        }
+
+    -- We have a commit hash that cannot safely be turned into a tag in a
+    -- source-repository-package. Parse the status, use it to construct an
+    -- error message, and fail.
+    parseBadStatus :: String -> (String -> FilePath -> String) -> IO a
+    parseBadStatus status mkErrMsg = do
+      (commit, relPath) <- parseStatus status
+      fail $ mkErrMsg commit relPath
+
+    -- Parse the (commit hash, submodule name) from a single line of output of
+    -- @git submodule status@. Fail if the output is malformed.
+    parseStatus :: String -> IO (String, FilePath)
+    parseStatus status =
+      case words status of
+        (commit:relPath:_) -> pure (commit, relPath)
+        _ -> fail $ unlines
+          [ "Unexpected output from `git submodule status`:"
+          , line
+          ]
 
 -- @'classifyPackages' packagePaths submods@ determines which of the
 -- @packagePaths@ in the @cabal.project@ file are subdirectories of the

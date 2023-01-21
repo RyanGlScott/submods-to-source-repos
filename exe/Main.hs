@@ -15,7 +15,8 @@ import Data.Maybe (maybeToList)
 import Data.Void (Void)
 import Distribution.CabalSpecVersion (cabalSpecLatest)
 import Distribution.FieldGrammar (prettyFieldGrammar)
-import Distribution.Fields.Pretty (PrettyField(..), showFields)
+import Distribution.Fields.Pretty
+  (CommentPosition(..), PrettyField(..), showFields)
 import Distribution.Types.SourceRepo (KnownRepoType(..), RepoType(..))
 import Network.URI (URI)
 import Options.Applicative
@@ -184,7 +185,7 @@ ppProject :: Project URI opt FilePath -> Doc
 ppProject (Project{ prjPackages, prjConstraints
                   , prjAllowNewer, prjReorderGoals, prjMaxBackjumps
                   , prjOptimization, prjSourceRepos, prjOtherFields }) =
-  PP.text $ showFields (const []) $
+  PP.text $ showFields (const NoComment) $
        map (\xs -> PrettyField () "packages" $ PP.text xs) prjPackages
     ++ map (\xs -> PrettyField () "constraints" $ PP.text xs) prjConstraints
     ++ map (\xs -> PrettyField () "allow-newer" $ PP.text xs) prjAllowNewer

@@ -1,6 +1,5 @@
-distribution:           bionic
+distribution:           jammy
 no-tests-no-benchmarks: False
 unconstrained:          False
 local-ghc-options:      -Werror
 installed:              +all -Cabal
-head-hackage:           >=9.6
